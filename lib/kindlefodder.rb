@@ -1,4 +1,4 @@
-# encoding: utf-8 
+# encoding: utf-8
 =begin
 
 Require this file in your recipe and subclass KindleFodder.
@@ -43,7 +43,7 @@ class Kindlefodder
   end
 
   def self.recipe_slug
-    self.to_s.gsub(/([a-z]+)([A-Z][a-z]+)/, '\1_\2').downcase  
+    self.to_s.gsub(/([a-z]+)([A-Z][a-z]+)/, '\1_\2').downcase
   end
 
   def self.output_dir
@@ -72,19 +72,23 @@ class Kindlefodder
           puts a[:url], path
           puts "Processing '#{a[:title]}' on path: #{path}"
           item = Nokogiri::HTML(File.open(path,'r:utf-8').read, nil, 'UTF-8')
+
           download_images! item
           fixup_html! item
-          item_path = "sections/%03d/%03d.html" % [section_idx, item_idx] 
+
+
+          item_path = "sections/%03d/%03d.html" % [section_idx, item_idx]
           description = a[:description]
           author = a[:author]
           add_head_section item, article_title, description, author
           out = item.to_xhtml
 
+
           # hacks to get the articles list to appear properly with summaries
-          out.sub!('html xmlns="http://www.w3.org/1999/xhtml"', 
+          out.sub!('html xmlns="http://www.w3.org/1999/xhtml"',
             '\& xml:lang="en" lang="en"')
           out.sub!(/<!DOCTYPE.*$/, '')
-          out.sub!('meta http-equiv="Content-Type" content="text/html; charset=UTF-8"', 
+          out.sub!('meta http-equiv="Content-Type" content="text/html; charset=UTF-8"',
             'meta content="http://www.w3.org/1999/xhtml; charset=utf-8" http-equiv="Content-Type"')
           out.strip!
           # remove these useless characters:
@@ -130,7 +134,7 @@ class Kindlefodder
 
   def download_images! doc
     doc.search('img').each {|img|
-      src = img[:src] 
+      src = img[:src]
       /(?<img_file>[^\/]+)$/ =~ src
 
       FileUtils::mkdir_p 'images'
@@ -151,14 +155,14 @@ class Kindlefodder
       img['src'] = [Dir.pwd, processed_image_path].join("/")
     }
   end
-  
+
   def fixup_html! doc
     # Sort of a hack to improve dt elements spacing
     # Using a css rule margin-top doesn't work
     doc.search('dt').each {|dt|
       dt.children.first.before(Nokogiri::XML::Node.new("br", doc))
     }
-    # We want to remove nested 'p' tags in 'li' tags, because these introduce an undesirable 
+    # We want to remove nested 'p' tags in 'li' tags, because these introduce an undesirable
     # blank line after the bullet. The expected CSS fix doesn't work.
     doc.search('li').each {|li|
       li.search("p").each {|p|
@@ -173,10 +177,10 @@ class Kindlefodder
       # THIS causes encoding problems!
       #li.inner_html = li.inner_html.strip
       if (n = li.children.first) && n.text?
-        n.content = n.content.strip
+        n.content = n.content.lstrip
       end
       if (n = li.children.last) && n.text?
-        n.content = n.content.strip
+        n.content = n.content.rstrip
       end
     }
   end
@@ -193,7 +197,7 @@ class Kindlefodder
   # name is usually "li,dd"
   def tighten_lists doc, target="li,dd"
     doc.search(target).each {|x|
-      x.search('p').each {|p| 
+      x.search('p').each {|p|
         p.swap p.children
         p.remove
       }
@@ -208,15 +212,15 @@ class Kindlefodder
       'doc_uuid' => "#{self.class.recipe_slug}-documentation-#{Date.today.to_s}",
       'title' => "#{self.class.to_s} Documentation",
       'author' => self.class.to_s,
-      'publisher' => 'github.com/danchoi/kindlefodder', 
-      'subject' => 'Reference', 
+      'publisher' => 'github.com/danchoi/kindlefodder',
+      'subject' => 'Reference',
       'date' => Date.today.to_s,
       'mobi_outfile' => "#{self.class.recipe_slug}.#{Date.today.to_s}.mobi"
     }
   end
 
   def mobi!
-    File.open("_document.yml", 'w') {|f| 
+    File.open("_document.yml", 'w') {|f|
       d = default_metadata.merge(document)
       f.puts d.to_yaml
     }
